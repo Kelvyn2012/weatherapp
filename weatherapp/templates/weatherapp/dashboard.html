@@ -1,0 +1,59 @@
+<!-- weather/templates/weather/dashboard.html -->
+{% extends 'weather/base.html' %}
+
+{% block title %}Dashboard - Weather App{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-xl p-6">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">My Weather Dashboard</h1>
+    
+    {% if cities_weather %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for city in cities_weather %}
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 relative">
+                    <form method="POST" action="{% url 'delete_city' city.id %}" class="absolute top-4 right-4">
+                        {% csrf_token %}
+                        <button type="submit" class="text-red-500 hover:text-red-700 text-xl">
+                            ✕
+                        </button>
+                    </form>
+                    
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">{{ city.data.city }}</h2>
+                            <p class="text-gray-600 capitalize">{{ city.data.description }}</p>
+                        </div>
+                        <img src="http://openweathermap.org/img/wn/{{ city.data.icon }}@2x.png" alt="Weather icon" class="w-16 h-16">
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Temperature:</span>
+                            <span class="font-bold text-blue-600">{{ city.data.temperature }}°C</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Feels Like:</span>
+                            <span class="font-semibold">{{ city.data.feels_like }}°C</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Humidity:</span>
+                            <span class="font-semibold">{{ city.data.humidity }}%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Wind Speed:</span>
+                            <span class="font-semibold">{{ city.data.wind_speed }} m/s</span>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-12">
+            <p class="text-gray-600 text-xl mb-4">You haven't added any cities yet.</p>
+            <a href="{% url 'index' %}" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold inline-block">
+                Search Cities
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
