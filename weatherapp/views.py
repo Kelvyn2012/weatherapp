@@ -6,9 +6,9 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib import messages
 from django.utils import timezone
+from django.conf import settings
 from datetime import timedelta
 from .models import City, WeatherCache
-from django.conf import settings
 
 API_KEY = settings.OPENWEATHER_API_KEY
 
@@ -150,7 +150,7 @@ def dashboard(request):
 
     return render(
         request,
-        "weather/dashboard.html",
+        "weatherapp/dashboard.html",
         {
             "cities_weather": cities_weather,
         },
