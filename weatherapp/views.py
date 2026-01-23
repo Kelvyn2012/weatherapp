@@ -85,6 +85,8 @@ def get_weather_data(city_name, use_cache=True):
 def index(request):
     weather_data = None
     forecast_data = None
+    hourly_data = None
+    air_quality = None
     error_message = None
     user_cities = []
 
@@ -94,18 +96,59 @@ def index(request):
     if request.method == "POST":
         city = request.POST.get("city")
         if city:
-            weather_data, forecast_data, error_message = get_weather_data(city)
+            weather_data, forecast_data, hourly_data, air_quality, error_message = (
+                get_weather_data(city)
+            )
 
     return render(
         request,
-        "weather/index.html",
+        "weatherapp/index.html",
         {
             "weather_data": weather_data,
             "forecast_data": forecast_data,
+            "hourly_data": hourly_data,
+            "air_quality": air_quality,
             "error_message": error_message,
             "user_cities": user_cities,
         },
     )
+
+
+def get_location_weather(request):
+    """API endpoint for geolocation-based weather"""
+    if request.method == "POST":
+        import json
+
+        data = json.loads(request.body)
+        lat = data.get("latitude")
+        lon = data.get("longitude")
+
+        if lat and lon:
+            weather_data, forecast_data, hourly_data, air_quality, error = (
+                get_weather_data(None, use_cache=False, lat=lat, lon=lon)
+            )
+
+            if weather_data:
+                # Save as default city for logged-in users
+                if request.user.is_authenticated:
+                    City.objects.update_or_create(
+                        user=request.user,
+                        name=weather_data["city"],
+                        defaults={
+                            "country": weather_data["country"],
+                            "latitude": lat,
+                            "longitude": lon,
+                            "is_default": True,
+                        },
+                    )
+
+                return JsonResponse(
+                    {"success": True, "redirect_url": f"/?city={weather_data['city']}"}
+                )
+
+        return JsonResponse({"success": False, "error": "Invalid coordinates"})
+
+    return JsonResponse({"success": False, "error": "Invalid request"})
 
 
 @login_required
@@ -114,12 +157,16 @@ def add_city(request):
         city_name = request.POST.get("city_name")
         if city_name:
             # Verify city exists by fetching weather
-            weather_data, _, error = get_weather_data(city_name, use_cache=False)
+            weather_data, _, _, _, error = get_weather_data(city_name, use_cache=False)
             if weather_data:
                 City.objects.get_or_create(
                     user=request.user,
                     name=weather_data["city"],
-                    defaults={"country": weather_data.get("country", "")},
+                    defaults={
+                        "country": weather_data.get("country", ""),
+                        "latitude": weather_data.get("latitude"),
+                        "longitude": weather_data.get("longitude"),
+                    },
                 )
                 messages.success(request, f"{weather_data['city']} added to favorites!")
             else:
@@ -144,7 +191,7 @@ def dashboard(request):
     cities_weather = []
 
     for city in user_cities:
-        weather_data, _, _ = get_weather_data(city.name)
+        weather_data, _, _, _, _ = get_weather_data(city.name)
         if weather_data:
             cities_weather.append({"id": city.id, "data": weather_data})
 
@@ -167,7 +214,7 @@ def register_view(request):
             return redirect("index")
     else:
         form = UserCreationForm()
-    return render(request, "weather/register.html", {"form": form})
+    return render(request, "weatherapp/register.html", {"form": form})
 
 
 def login_view(request):
@@ -183,7 +230,7 @@ def login_view(request):
                 return redirect("index")
     else:
         form = AuthenticationForm()
-    return render(request, "weather/login.html", {"form": form})
+    return render(request, "weatherapp/login.html", {"form": form})
 
 
 def logout_view(request):
