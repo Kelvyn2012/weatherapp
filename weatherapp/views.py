@@ -8,8 +8,9 @@ from django.contrib import messages
 from django.utils import timezone
 from datetime import timedelta
 from .models import City, WeatherCache
+from django.conf import settings
 
-API_KEY = "YOUR_API_KEY_HERE"  # Replace with your OpenWeatherMap API key
+API_KEY = settings.OPENWEATHER_API_KEY
 
 
 def get_weather_data(city_name, use_cache=True):
