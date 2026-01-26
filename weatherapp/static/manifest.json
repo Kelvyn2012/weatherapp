@@ -1,0 +1,26 @@
+ {
+  "name": "WeatherApp - Advanced Weather Forecasting",
+  "short_name": "WeatherApp",
+  "description": "Get real-time weather updates, forecasts, and air quality information",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#3b82f6",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["weather", "utilities"],
+  "screenshots": []
+}

@@ -1,315 +1,114 @@
-{% extends 'weatherapp/base.html' %}
-
-{% block content %}
-<!-- Geolocation Button -->
-<div class="mb-6 text-center">
-    <button id="getLocationBtn" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-semibold transition inline-flex items-center">
-        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-        </svg>
-        Use My Location
-    </button>
-</div>
-
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- Main Content -->
-    <div class="lg:col-span-2 space-y-6">
-        <!-- Search Section -->
-        <div class="bg-white rounded-lg shadow-xl p-6">
-            <h1 class="text-3xl font-bold text-gray-800 mb-6">Search Weather</h1>
-            
-            <form method="POST" class="mb-6">
-                {% csrf_token %}
-                <div class="flex gap-2">
-                    <input type="text" name="city" placeholder="Enter city name..." 
-                           class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                           required>
-                    <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition">
-                        Search
-                    </button>
-                </div>
-            </form>
-
-            {% if error_message %}
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                    {{ error_message }}
-                </div>
-            {% endif %}
-
-            {% if weather_data %}
-                <!-- Weather Alerts -->
-                {% if weather_data.alerts %}
-                    <div class="mb-6">
-                        {% for alert in weather_data.alerts %}
-                            <div class="bg-{% if alert.severity == 'Severe' %}red{% else %}yellow{% endif %}-100 border border-{% if alert.severity == 'Severe' %}red{% else %}yellow{% endif %}-400 text-{% if alert.severity == 'Severe' %}red{% else %}yellow{% endif %}-800 px-4 py-3 rounded mb-2">
-                                <strong>⚠️ {{ alert.type }} Alert ({{ alert.severity }})</strong>
-                                <p>{{ alert.description }}</p>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-
-                <!-- Current Weather -->
-                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 mb-6">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <h2 class="text-3xl font-bold text-gray-800">{{ weather_data.city }}, {{ weather_data.country }}</h2>
-                            <p class="text-gray-600 capitalize mt-2">{{ weather_data.description }}</p>
-                        </div>
-                        <div class="text-center">
-                            <img src="http://openweathermap.org/img/wn/{{ weather_data.icon }}@4x.png" alt="Weather icon" class="w-24 h-24">
-                            <button onclick="shareWeather()" class="text-sm text-blue-600 hover:text-blue-800">
-                                📤 Share
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                        <div class="bg-white rounded-lg p-4 text-center">
-                            <p class="text-4xl font-bold text-blue-600">{{ weather_data.temperature }}°C</p>
-                            <p class="text-gray-600 text-sm mt-1">Temperature</p>
-                        </div>
-                        <div class="bg-white rounded-lg p-4 text-center">
-                            <p class="text-2xl font-semibold text-gray-700">{{ weather_data.feels_like }}°C</p>
-                            <p class="text-gray-600 text-sm mt-1">Feels Like</p>
-                        </div>
-                        <div class="bg-white rounded-lg p-4 text-center">
-                            <p class="text-2xl font-semibold text-gray-700">{{ weather_data.humidity }}%</p>
-                            <p class="text-gray-600 text-sm mt-1">Humidity</p>
-                        </div>
-                        <div class="bg-white rounded-lg p-4 text-center">
-                            <p class="text-2xl font-semibold text-gray-700">{{ weather_data.wind_speed }} m/s</p>
-                            <p class="text-gray-600 text-sm mt-1">Wind Speed</p>
-                        </div>
-                    </div>
-
-                    <!-- Extended Data -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                        <div class="bg-white rounded-lg p-3 text-center">
-                            <p class="text-sm text-gray-600">Visibility</p>
-                            <p class="text-lg font-semibold">{{ weather_data.visibility }} km</p>
-                        </div>
-                        <div class="bg-white rounded-lg p-3 text-center">
-                            <p class="text-sm text-gray-600">Pressure</p>
-                            <p class="text-lg font-semibold">{{ weather_data.pressure }} hPa</p>
-                        </div>
-                        <div class="bg-white rounded-lg p-3 text-center">
-                            <p class="text-sm text-gray-600">☀️ Sunrise</p>
-                            <p class="text-lg font-semibold">{{ weather_data.sunrise }}</p>
-                        </div>
-                        <div class="bg-white rounded-lg p-3 text-center">
-                            <p class="text-sm text-gray-600">🌙 Sunset</p>
-                            <p class="text-lg font-semibold">{{ weather_data.sunset }}</p>
-                        </div>
-                    </div>
-
-                    <!-- Air Quality -->
-                    {% if air_quality %}
-                        <div class="bg-white rounded-lg p-4 mb-4">
-                            <h3 class="font-bold text-gray-800 mb-2">Air Quality Index</h3>
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <span class="text-2xl font-bold">{{ air_quality.aqi_label }}</span>
-                                    <p class="text-sm text-gray-600">AQI: {{ air_quality.aqi }}/5</p>
-                                </div>
-                                <div class="text-right text-sm text-gray-600">
-                                    <p>PM2.5: {{ air_quality.pm2_5|floatformat:1 }} µg/m³</p>
-                                    <p>PM10: {{ air_quality.pm10|floatformat:1 }} µg/m³</p>
-                                </div>
-                            </div>
-                        </div>
-                    {% endif %}
-
-                    <!-- Weather Map -->
-                    <div class="bg-white rounded-lg p-4 mb-4">
-                        <h3 class="font-bold text-gray-800 mb-2">Weather Map</h3>
-                        <div class="aspect-video bg-gray-200 rounded overflow-hidden">
-                            <iframe 
-                                src="https://openweathermap.org/weathermap?basemap=map&cities=false&layer=temperature&lat={{ weather_data.latitude }}&lon={{ weather_data.longitude }}&zoom=8"
-                                class="w-full h-full border-0"
-                            ></iframe>
-                        </div>
-                    </div>
-
-                    {% if user.is_authenticated %}
-                        <form method="POST" action="{% url 'add_city' %}">
-                            {% csrf_token %}
-                            <input type="hidden" name="city_name" value="{{ weather_data.city }}">
-                            <button type="submit" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold transition">
-                                ⭐ Add to Favorites
-                            </button>
-                        </form>
-                    {% endif %}
-                </div>
-
-                <!-- Hourly Forecast -->
-                {% if hourly_data %}
-                    <div class="bg-white rounded-lg p-6 mb-6">
-                        <h3 class="text-2xl font-bold text-gray-800 mb-4">24-Hour Forecast</h3>
-                        <div class="overflow-x-auto">
-                            <div class="flex gap-4 pb-4">
-                                {% for hour in hourly_data %}
-                                    <div class="flex-shrink-0 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 text-center min-w-[120px]">
-                                        <p class="font-semibold text-gray-700 mb-2">{{ hour.time }}</p>
-                                        <img src="http://openweathermap.org/img/wn/{{ hour.icon }}@2x.png" alt="Weather" class="w-12 h-12 mx-auto">
-                                        <p class="text-sm capitalize text-gray-600 mb-2">{{ hour.description }}</p>
-                                        <p class="text-lg font-bold text-blue-600">{{ hour.temp }}°</p>
-                                        <p class="text-xs text-gray-600">Feels {{ hour.feels_like }}°</p>
-                                        <p class="text-xs text-blue-600 mt-1">💧 {{ hour.pop }}%</p>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
-
-                <!-- Temperature Chart -->
-                <div class="bg-white rounded-lg p-6 mb-6">
-                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Temperature Trend</h3>
-                    <canvas id="tempChart"></canvas>
-                </div>
-
-                <!-- 5-Day Forecast -->
-                {% if forecast_data %}
-                    <div class="bg-white rounded-lg p-6">
-                        <h3 class="text-2xl font-bold text-gray-800 mb-4">5-Day Forecast</h3>
-                        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                            {% for day in forecast_data %}
-                                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 text-center">
-                                    <p class="font-semibold text-gray-700 mb-2">{{ day.date }}</p>
-                                    <img src="http://openweathermap.org/img/wn/{{ day.icon }}@2x.png" alt="Weather" class="w-16 h-16 mx-auto">
-                                    <p class="text-sm capitalize text-gray-600 mb-2">{{ day.description }}</p>
-                                    <p class="text-lg font-bold text-blue-600">{{ day.temp_max|floatformat:0 }}°</p>
-                                    <p class="text-sm text-gray-600">{{ day.temp_min|floatformat:0 }}°</p>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                {% endif %}
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Sidebar -->
-    <div class="lg:col-span-1">
-        <div class="bg-white rounded-lg shadow-xl p-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">Favorite Cities</h2>
-            
-            {% if user.is_authenticated %}
-                {% if user_cities %}
-                    <div class="space-y-3">
-                        {% for city in user_cities %}
-                            <div class="bg-blue-50 rounded-lg p-4 flex justify-between items-center">
-                                <form method="POST" class="flex-1">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="city" value="{{ city.name }}">
-                                    <button type="submit" class="text-left w-full hover:text-blue-600 font-semibold">
-                                        {{ city.name }}
-                                    </button>
-                                </form>
-                                <form method="POST" action="{% url 'delete_city' city.id %}">
-                                    {% csrf_token %}
-                                    <button type="submit" class="text-red-500 hover:text-red-700 ml-2">
-                                        ✕
-                                    </button>
-                                </form>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="text-gray-600">No favorite cities yet. Search for a city and add it to favorites!</p>
-                {% endif %}
-            {% else %}
-                <p class="text-gray-600 mb-4">Login to save your favorite cities!</p>
-                <a href="{% url 'login' %}" class="block text-center bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">
-                    Login Now
-                </a>
-            {% endif %}
-        </div>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-// Geolocation
-document.getElementById('getLocationBtn').addEventListener('click', function() {
-    if (navigator.geolocation) {
-        this.innerHTML = '<svg class="animate-spin h-5 w-5 mr-2 inline" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Getting location...';
-        
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                fetch('/api/location-weather/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    body: JSON.stringify({
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        window.location.href = data.redirect_url;
-                    }
-                });
-            },
-            (error) => {
-                alert('Unable to get your location. Please search manually.');
-                this.innerHTML = '<svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> Use My Location';
-            }
-        );
-    }
-});
-
-// Temperature Chart
-{% if hourly_data %}
-const ctx = document.getElementById('tempChart').getContext('2d');
-new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: [{% for hour in hourly_data %}'{{ hour.time }}',{% endfor %}],
-        datasets: [{
-            label: 'Temperature (°C)',
-            data: [{% for hour in hourly_data %}{{ hour.temp }},{% endfor %}],
-            borderColor: 'rgb(59, 130, 246)',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            tension: 0.4,
-            fill: true
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: {
-                display: false
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: false
-            }
+<!-- weather/templates/weatherapp/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Get real-time weather updates, forecasts, air quality, and more">
+    <meta name="theme-color" content="#3b82f6">
+    <title>{% block title %}Weather App{% endblock %}</title>
+    
+    <!-- PWA Support -->
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-    }
-});
-{% endif %}
+        .animate-slide-in {
+            animation: slideIn 0.5s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-400 to-blue-600 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="{% url 'index' %}" class="text-2xl font-bold text-blue-600">
+                        ⛅ WeatherApp
+                    </a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'dashboard' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                            Dashboard
+                        </a>
+                        <span class="text-gray-700">Hi, {{ user.username }}</span>
+                        <a href="{% url 'logout' %}" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium">
+                            Logout
+                        </a>
+                    {% else %}
+                        <a href="{% url 'login' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                            Login
+                        </a>
+                        <a href="{% url 'register' %}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium">
+                            Register
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
 
-// Share Weather
-function shareWeather() {
-    const text = `Weather in {{ weather_data.city }}: {{ weather_data.temperature }}°C, {{ weather_data.description }}`;
-    if (navigator.share) {
-        navigator.share({
-            title: 'Weather Update',
-            text: text,
-            url: window.location.href
+    <!-- Messages -->
+    {% if messages %}
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+            {% for message in messages %}
+                <div class="bg-{% if message.tags == 'error' %}red{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-100 border border-{% if message.tags == 'error' %}red{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-400 text-{% if message.tags == 'error' %}red{% elif message.tags == 'success' %}green{% else %}blue{% endif %}-700 px-4 py-3 rounded relative mb-4" role="alert">
+                    <span class="block sm:inline">{{ message }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center text-white py-4 mt-8">
+        <p>&copy; 2024 WeatherApp. Powered by OpenWeatherMap API</p>
+        <button id="installBtn" class="mt-2 bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hidden">
+            📱 Install App
+        </button>
+    </footer>
+    
+    <!-- PWA Install Prompt & Service Worker -->
+    <script>
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/sw.js')
+                .then(reg => console.log('Service Worker registered'))
+                .catch(err => console.log('Service Worker registration failed'));
+        }
+        
+        // Install Prompt
+        let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.classList.remove('hidden');
         });
-    } else {
-        navigator.clipboard.writeText(text);
-        alert('Weather info copied to clipboard!');
-    }
-}
-</script>
-{% endblock %}
+        
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                installBtn.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
